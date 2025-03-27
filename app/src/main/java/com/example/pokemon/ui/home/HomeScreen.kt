@@ -209,7 +209,7 @@ private fun PokemonItem(
                 IconButton(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(16.dp),
+                        .padding(8.dp),
                     onClick = onBallClick
                 ) {
                     Icon(
