@@ -12,6 +12,6 @@ interface PokemonService {
     @GET("pokemon/{name}")
     suspend fun fetchPokemonInfo(@Path("name") name: String): PokemonInfo
 
-    @GET("pokemon-species/{name}")
-    suspend fun fetchPokemonSpecies(@Path("name") name: String): PokemonSpecies
+    @GET("pokemon-species/{id}")
+    suspend fun fetchPokemonSpecies(@Path("id") id: Long): PokemonSpecies
 }

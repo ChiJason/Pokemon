@@ -2,8 +2,10 @@ package com.example.pokemon.di
 
 import android.content.Context
 import androidx.room.Room
-import com.example.pokemon.data.network.PokemonService
 import com.example.pokemon.data.db.AppDatabase
+import com.example.pokemon.data.network.PokemonService
+import com.example.pokemon.di.AppDispatchers.Default
+import com.example.pokemon.di.AppDispatchers.IO
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,6 +19,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import javax.inject.Qualifier
 import javax.inject.Singleton
+import kotlin.annotation.AnnotationRetention.RUNTIME
 
 @InstallIn(SingletonComponent::class)
 @Module
@@ -52,20 +55,19 @@ object AppModule {
     @Provides
     fun providePokemonDao(db: AppDatabase) = db.pokemonDao()
 
-    @IoDispatcher
     @Provides
+    @Dispatcher(IO)
     fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
 
-    @DefaultDispatcher
     @Provides
+    @Dispatcher(Default)
     fun provideDefaultDispatcher(): CoroutineDispatcher = Dispatchers.Default
 }
 
-
 @Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class IoDispatcher
+@Retention(RUNTIME)
+annotation class Dispatcher(val appDispatcher: AppDispatchers)
 
-@Qualifier
-@Retention(AnnotationRetention.BINARY)
-annotation class DefaultDispatcher
+enum class AppDispatchers {
+    Default, IO
+}

@@ -1,19 +1,20 @@
 package com.example.pokemon.ui.home
 
 import android.util.Log
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import coil.util.CoilUtils.result
 import com.example.pokemon.Event
-import com.example.pokemon.data.network.PokemonRepository
+import com.example.pokemon.data.PokemonRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -23,24 +24,78 @@ class HomeViewModel @Inject constructor(
     private val repo: PokemonRepository
 ) : ViewModel() {
 
-    private val _screenUiState = MutableStateFlow(HomeScreenUiState())
-    val screenUiState = _screenUiState.asStateFlow()
+    var errorMessage by mutableStateOf<Event<String>?>(null)
+        private set
+
+    val collections = repo.fakeStorage.map { storage ->
+        storage.map { (type, items) ->
+            PokemonTypeItemUiState(
+                type,
+                items.map {
+                    PokemonItemUiState(
+                        it.id,
+                        it.name,
+                        it.image
+                    )
+                }
+            )
+        }
+    }.catch {
+        errorMessage = Event(it.message.orEmpty())
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    private val _pocketItems = MutableStateFlow<List<PocketItemUiState>>(emptyList())
+    val pocketItems = _pocketItems.asStateFlow()
 
     init {
-        repo.getAllPokemon().onEach { pokemonList ->
-            _screenUiState.update { it.copy(data = pokemonList) }
-        }.catch { error ->
-            _screenUiState.update { it.copy(error = Event(error.message.orEmpty())) }
-        }.launchIn(viewModelScope)
+        fetchPrepopulatedData()
     }
 
     fun fetchPrepopulatedData() {
         viewModelScope.launch {
             runCatching {
-                repo.fetchPrepopulatedData()
+                repo.fetchPokemonList()
             }.onFailure { error ->
-                _screenUiState.update { it.copy(error = Event(error.message.orEmpty())) }
+                Log.e("HomeViewModel", "fetchPrepopulatedData: $error")
+                errorMessage = Event(error.message.orEmpty())
             }
         }
     }
+
+    fun capturePokemon(item: PokemonItemUiState) {
+        _pocketItems.update {
+            pocketItems.value + PocketItemUiState(
+                pocketItems.value.size.toLong(),
+                item.id,
+                item.name,
+                item.image
+            )
+        }
+    }
+
+    fun releasePokemon(item: PocketItemUiState) {
+        _pocketItems.update { pocketItems.value - item }
+    }
 }
+
+data class PokemonTypeItemUiState(
+    val type: String,
+    val pokemonItems: List<PokemonItemUiState>
+)
+
+data class PokemonItemUiState(
+    val id: Long,
+    val name: String,
+    val image: String
+)
+
+data class PocketItemUiState(
+    val id: Long,
+    val pokemonId: Long,
+    val name: String,
+    val image: String
+)

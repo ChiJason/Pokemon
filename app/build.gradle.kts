@@ -52,6 +52,7 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.kotlin.stdlib)
     implementation(libs.bundles.room)
     ksp(libs.room.compiler)
 

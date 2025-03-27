@@ -7,5 +7,5 @@ import androidx.room.PrimaryKey
 data class Pokemon(
     @PrimaryKey val id: Long,
     val name: String,
-    val image: String
+    val image: String,
 )

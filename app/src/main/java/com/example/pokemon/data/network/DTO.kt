@@ -39,5 +39,11 @@ data class PokemonSpecies(
 )
 
 @Serializable
-data class FlavorTextEntry(@SerialName("flavor_text") val flavorText: String)
+data class FlavorTextEntry(
+    @SerialName("flavor_text") val flavorText: String,
+    @SerialName("version") val version: Version,
+)
+
+@Serializable
+data class Version(@SerialName("name") val name: String)
 
