@@ -8,15 +8,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.pokemon.Event
 import com.example.pokemon.data.PokemonRepository
+import com.example.pokemon.data.db.CapturedPokemon
+import com.example.pokemon.data.db.TypeWithPokemons
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.net.UnknownHostException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -27,19 +27,11 @@ class HomeViewModel @Inject constructor(
     var errorMessage by mutableStateOf<Event<String>?>(null)
         private set
 
-    val collections = repo.fakeStorage.map { storage ->
-        storage.map { (type, items) ->
-            PokemonTypeItemUiState(
-                type,
-                items.map {
-                    PokemonItemUiState(
-                        it.id,
-                        it.name,
-                        it.image
-                    )
-                }
-            )
-        }
+    var scrollToFirst by mutableStateOf<Event<Unit>?>(null)
+        private set
+
+    val collections = repo.getTypesWithPokemons().map {
+        it.toCollectionItemUiState()
     }.catch {
         errorMessage = Event(it.message.orEmpty())
     }.stateIn(
@@ -48,8 +40,15 @@ class HomeViewModel @Inject constructor(
         initialValue = emptyList()
     )
 
-    private val _pocketItems = MutableStateFlow<List<PocketItemUiState>>(emptyList())
-    val pocketItems = _pocketItems.asStateFlow()
+    val pocketItems = repo.getCapturedPokemons().map {
+        it.toPocketItemUiState()
+    }.catch {
+        errorMessage = Event(it.message.orEmpty())
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     init {
         fetchPrepopulatedData()
@@ -59,30 +58,60 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching {
                 repo.fetchPokemonList()
-            }.onFailure { error ->
-                Log.e("HomeViewModel", "fetchPrepopulatedData: $error")
-                errorMessage = Event(error.message.orEmpty())
+            }.onFailure {
+                Log.e("HomeViewModel", "fetchPrepopulatedData: $it")
+                val error = if (it is UnknownHostException) "Connection Failed" else it.message.orEmpty()
+                errorMessage = Event(error)
             }
         }
     }
 
-    fun capturePokemon(item: PokemonItemUiState) {
-        _pocketItems.update {
-            pocketItems.value + PocketItemUiState(
-                pocketItems.value.size.toLong(),
-                item.id,
-                item.name,
-                item.image
-            )
+    fun capturePokemon(pokemonId: Long) {
+        viewModelScope.launch {
+            runCatching {
+                repo.capturePokemon(pokemonId)
+                scrollToFirst = Event(Unit)
+            }.onFailure {
+                errorMessage = Event("capture pokemon failed")
+            }
         }
     }
 
-    fun releasePokemon(item: PocketItemUiState) {
-        _pocketItems.update { pocketItems.value - item }
+    fun releasePokemon(pocketId: Long) {
+        viewModelScope.launch {
+            runCatching {
+                repo.releasePokemon(pocketId)
+            }.onFailure {
+                errorMessage = Event("release pokemon failed")
+            }
+        }
     }
 }
 
-data class PokemonTypeItemUiState(
+private fun List<TypeWithPokemons>.toCollectionItemUiState(): List<PokemonCollectionItemUiState> =
+    map {
+        PokemonCollectionItemUiState(
+            type = it.type.typeName,
+            pokemonItems = it.pokemons.map { pokemon ->
+                PokemonItemUiState(
+                    id = pokemon.pokemonId,
+                    name = pokemon.name,
+                    image = pokemon.image
+                )
+            }
+        )
+    }
+
+private fun List<CapturedPokemon>.toPocketItemUiState(): List<PocketItemUiState> = map {
+    PocketItemUiState(
+        id = it.id,
+        pokemonId = it.pokemonId,
+        name = it.name,
+        image = it.image
+    )
+}
+
+data class PokemonCollectionItemUiState(
     val type: String,
     val pokemonItems: List<PokemonItemUiState>
 )

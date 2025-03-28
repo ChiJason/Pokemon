@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -52,6 +53,7 @@ fun HomeScreenRoute(
     HomeScreen(
         collections = screenUiState,
         pocketItems = pocketItems,
+        scrollToFirst = viewModel.scrollToFirst,
         errorMessage = viewModel.errorMessage,
         navigateToDetail = navigateToDetail,
         capturePokemon = viewModel::capturePokemon,
@@ -61,18 +63,20 @@ fun HomeScreenRoute(
 
 @Composable
 private fun HomeScreen(
-    collections: List<PokemonTypeItemUiState>,
+    collections: List<PokemonCollectionItemUiState>,
     pocketItems: List<PocketItemUiState>,
+    scrollToFirst: Event<Unit>?,
     errorMessage: Event<String>?,
     navigateToDetail: (pokemonId: Long) -> Unit,
-    capturePokemon: (item: PokemonItemUiState) -> Unit,
-    releasePokemon: (item: PocketItemUiState) -> Unit
+    capturePokemon: (pokemonId: Long) -> Unit,
+    releasePokemon: (pocketId: Long) -> Unit
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             PocketItem(
+                scrollToFirst = scrollToFirst,
                 pocketItems = pocketItems,
                 onItemClick = navigateToDetail,
                 releasePokemon = releasePokemon
@@ -88,10 +92,7 @@ private fun HomeScreen(
                 PokemonTypeItem(
                     type = it.type,
                     pokemonItems = it.pokemonItems,
-                    onBallClick = { id ->
-                        val item = it.pokemonItems.find { it.id == id }
-                        item?.run { capturePokemon(this) }
-                    },
+                    onBallClick = capturePokemon,
                     onItemClick = navigateToDetail
                 )
             }
@@ -106,10 +107,16 @@ private fun HomeScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PocketItem(
+    scrollToFirst: Event<Unit>?,
     pocketItems: List<PocketItemUiState>,
     onItemClick: (pokemonId: Long) -> Unit,
-    releasePokemon: (item: PocketItemUiState) -> Unit
+    releasePokemon: (pocketId: Long) -> Unit
 ) {
+    val listState = rememberLazyListState()
+    LaunchedEffect(scrollToFirst) {
+        if (scrollToFirst == null) return@LaunchedEffect
+        listState.animateScrollToItem(0)
+    }
     Column(
         modifier = Modifier
             .background(MaterialTheme.colorScheme.surface)
@@ -120,6 +127,7 @@ private fun PocketItem(
         SectionItem(title = "Pocket", tail = "${pocketItems.size}")
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
+            state = listState,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
             contentPadding = PaddingValues(horizontal = 16.dp)
@@ -129,7 +137,7 @@ private fun PocketItem(
                     name = it.name,
                     image = it.image,
                     onItemClick = { onItemClick(it.pokemonId) },
-                    onBallClick = { releasePokemon(it) }
+                    onBallClick = { releasePokemon(it.id) }
                 )
             }
         }
@@ -157,7 +165,8 @@ private fun PokemonTypeItem(
         ) {
             items(pokemonItems, key = { it.id }) {
                 PokemonItem(
-                    it.name, it.image,
+                    name = it.name,
+                    image = it.image,
                     onItemClick = { onItemClick(it.id) },
                     onBallClick = { onBallClick(it.id) }
                 )
@@ -229,14 +238,14 @@ private fun PokemonItem(
 private fun HomeScreenPreview() {
     HomeScreen(
         collections = listOf(
-            PokemonTypeItemUiState(
+            PokemonCollectionItemUiState(
                 "Fire",
                 listOf(
                     PokemonItemUiState(1, "Bulbasaur", ""),
                     PokemonItemUiState(2, "Ivysaur", "")
                 )
             ),
-            PokemonTypeItemUiState(
+            PokemonCollectionItemUiState(
                 "Water",
                 listOf(
                     PokemonItemUiState(1, "Bulbasaur", ""),
@@ -249,6 +258,7 @@ private fun HomeScreenPreview() {
             PocketItemUiState(1, 0, "Bulbasaur", ""),
             PocketItemUiState(2, 0, "Bulbasaur", ""),
         ),
+        scrollToFirst = null,
         errorMessage = null,
         navigateToDetail = {},
         capturePokemon = {},

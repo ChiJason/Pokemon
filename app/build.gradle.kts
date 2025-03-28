@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.room)
 }
 
 android {
@@ -38,7 +39,16 @@ android {
         jvmTarget = "11"
     }
     buildFeatures {
+        buildConfig = true
         compose = true
+    }
+    packaging {
+        resources {
+            excludes += setOf("META-INF/*")
+        }
+    }
+    room {
+        schemaDirectory("$projectDir/schemas")
     }
 }
 

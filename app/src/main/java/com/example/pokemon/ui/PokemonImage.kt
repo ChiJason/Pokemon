@@ -9,7 +9,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import coil.compose.AsyncImage
+import com.example.pokemon.R
 
 @Composable
 fun PokemonImage(
@@ -23,6 +25,7 @@ fun PokemonImage(
             modifier = modifier,
             model = image,
             contentDescription = contentDescription,
+            error = painterResource(R.drawable.ic_image_not_supported_24),
             onLoading = { isLoading = true },
             onSuccess = { isLoading = false },
             onError = { isLoading = false }

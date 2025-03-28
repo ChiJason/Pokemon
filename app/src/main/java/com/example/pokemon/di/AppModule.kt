@@ -2,6 +2,7 @@ package com.example.pokemon.di
 
 import android.content.Context
 import androidx.room.Room
+import com.example.pokemon.BuildConfig
 import com.example.pokemon.data.db.AppDatabase
 import com.example.pokemon.data.network.PokemonService
 import com.example.pokemon.di.AppDispatchers.Default
@@ -14,7 +15,10 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
+import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import javax.inject.Qualifier
@@ -25,9 +29,20 @@ import kotlin.annotation.AnnotationRetention.RUNTIME
 @Module
 object AppModule {
 
+    @Provides
+    @Singleton
+    fun provideOkHttpCallFactory(): Call.Factory = OkHttpClient.Builder()
+        .addInterceptor(
+            HttpLoggingInterceptor().apply {
+                if (BuildConfig.DEBUG) {
+                    setLevel(HttpLoggingInterceptor.Level.BODY)
+                }
+            },
+        ).build()
+
     @Singleton
     @Provides
-    fun providePokemonService(): PokemonService {
+    fun providePokemonService(okHttpCallFactory: Call.Factory): PokemonService {
         val networkJson = Json {
             ignoreUnknownKeys = true
             encodeDefaults = true
@@ -36,6 +51,7 @@ object AppModule {
         }
         val retrofit = Retrofit.Builder()
             .baseUrl("https://pokeapi.co/api/v2/")
+            .callFactory(okHttpCallFactory)
             .addConverterFactory(networkJson.asConverterFactory("application/json; charset=UTF8".toMediaType()))
             .build()
         return retrofit.create(PokemonService::class.java)
@@ -48,8 +64,8 @@ object AppModule {
     ): AppDatabase = Room.databaseBuilder(
         applicationContext,
         AppDatabase::class.java,
-        "pokemon_database"
-    ).fallbackToDestructiveMigration().build()
+        "pokemon-database"
+    ).build()
 
     @Singleton
     @Provides

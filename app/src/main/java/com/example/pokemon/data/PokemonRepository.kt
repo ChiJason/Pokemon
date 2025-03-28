@@ -1,86 +1,93 @@
 package com.example.pokemon.data
 
-import android.util.Log
+import com.example.pokemon.data.db.Pocket
 import com.example.pokemon.data.db.Pokemon
 import com.example.pokemon.data.db.PokemonDao
+import com.example.pokemon.data.db.PokemonDetail
+import com.example.pokemon.data.db.Species
+import com.example.pokemon.data.db.Type
+import com.example.pokemon.data.db.TypePokemonCrossRef
 import com.example.pokemon.data.network.PokemonService
-import com.example.pokemon.di.AppDispatchers.IO
-import com.example.pokemon.di.Dispatcher
-import com.example.pokemon.ui.detail.DetailUiState
-import com.example.pokemon.ui.detail.EvolvesFrom
-import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.retry
+import java.util.Date
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class PokemonRepository @Inject constructor(
     private val service: PokemonService,
-    private val pokemonDao: PokemonDao,
-    @Dispatcher(IO) private val ioDispatcher: CoroutineDispatcher
+    private val pokemonDao: PokemonDao
 ) {
 
-    val fakeStorage = MutableStateFlow<Map<String, Set<Pokemon>>>(mapOf())
+    fun getTypesWithPokemons() = pokemonDao.getTypesWithPokemons()
 
-    suspend fun fetchPokemonList() = withContext(ioDispatcher) {
+    fun getCapturedPokemons() = pokemonDao.getRecentCapturedPokemons()
+
+    //Option 1
+    fun getPokemonWithTypes(pokemonId: Long) = pokemonDao.getPokemonWithTypes(pokemonId)
+
+    //Option 1
+    fun getSpeciesWIthEvolvesFrom(pokemonId: Long) = pokemonDao.getSpeciesWIthEvolvesFrom(pokemonId)
+        .onStart { fetchPokemonSpecies(pokemonId) }
+
+    //Option 2
+    fun getPokemonDetail(pokemonId: Long): Flow<PokemonDetail> =
+        pokemonDao.getPokemonDetail(pokemonId).retry(1) {
+            fetchPokemonSpecies(pokemonId)
+            true
+        }
+
+    suspend fun capturePokemon(pokemonId: Long) =
+        pokemonDao.insertPocket(pocket = Pocket(pokemonId = pokemonId, capturedAt = Date()))
+
+    suspend fun releasePokemon(pocketId: Long) = pokemonDao.deletePocket(pocketId)
+
+    suspend fun fetchPokemonList() {
         coroutineScope {
-            Log.d("PokemonRepository", "fetchPokemonList: start")
-            val pokemonNames = service.fetchPokemonList().results.map { it.name }
+            val lastPokemonId = pokemonDao.getLastPokemonId()
+            if (lastPokemonId == 151) return@coroutineScope
+            val pokemonNames =
+                service.fetchPokemonList(offset = lastPokemonId).results.map { it.name }
             pokemonNames.map { async { fetchPokemon(it) } }.awaitAll()
-            Log.d(
-                "PokemonRepository",
-                "fetchPokemonList: end ${fakeStorage.value.values.flatten().toSet().size}"
-            )
         }
     }
 
-    private suspend fun fetchPokemon(name: String) = service.fetchPokemonInfo(name).let {
+    private suspend fun fetchPokemon(name: String) {
+        if (pokemonDao.getPokemonIdByName(name) != null) return
+        val pokemonInfo = service.fetchPokemonInfo(name)
         val pokemon = Pokemon(
-            it.id,
-            it.name.replaceFirstChar(Char::uppercase),
-            it.sprites.other.officialArtwork.frontDefault
+            pokemonId = pokemonInfo.id,
+            name = pokemonInfo.name,
+            image = pokemonInfo.sprites.other.officialArtwork.frontDefault
         )
-        it.types.map { it.type.name }.forEach {
-            fakeStorage.update { storage ->
-                val new = storage.toMutableMap()
-                new[it] = new[it]?.plus(pokemon) ?: setOf(pokemon)
-                new.toSortedMap()
-            }
-        }
+        val (types, crossRefs) = pokemonInfo.types.map { it.type.name }.map {
+            Pair(
+                Type(typeName = it),
+                TypePokemonCrossRef(typeName = it, pokemonId = pokemon.pokemonId)
+            )
+        }.unzip()
+        pokemonDao.insertPokemonAndTypes(pokemon, types, crossRefs)
     }
 
-    fun getPokemonDetail(id: Long) = flow {
-        val pokemons = fakeStorage.value.values.flatten().toSet()
-        val species = service.fetchPokemonSpecies(id)
-        val pokemon = pokemons.find { it.id == id }
-        val detail = DetailUiState(
-            id = id,
-            name = pokemon?.name.orEmpty(),
-            image = pokemon?.image.orEmpty(),
-            types = fakeStorage.value.filterValues { it.any { it.id == id } }.keys.toList(),
-            evolvesFrom = species.evolvesFromSpecies?.let { from ->
-                pokemons.find { it.name.equals(from.name, true) }?.let {
-                    EvolvesFrom(
-                        it.id,
-                        it.name,
-                        it.image
-                    )
-                }
-            },
-            description = species.flavorTextEntries.firstOrNull {
-                it.version.name == "red"
-            }?.flavorText.orEmpty()
+    private suspend fun fetchPokemonSpecies(pokemonId: Long) {
+        if (pokemonDao.getSpecies(pokemonId) != null) return
+        val species = service.fetchPokemonSpecies(pokemonId)
+        val evolvesFromId = species.evolvesFromSpecies?.name?.let {
+            pokemonDao.getPokemonIdByName(it)
+        }
+        pokemonDao.insertSpecies(
+            Species(
+                pokemonId = pokemonId,
+                evolvesFromId = evolvesFromId,
+                description = species.flavorTextEntries.firstOrNull {
+                    it.version.name == "red"
+                }?.flavorText.orEmpty()
+            )
         )
-        emit(detail)
-    }.flowOn(ioDispatcher)
-
-    fun getAllPokemon() = pokemonDao.getAllPokemon().distinctUntilChanged()
+    }
 }

@@ -2,6 +2,7 @@ package com.example.pokemon.ui.detail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -11,20 +12,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,7 +31,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.pokemon.Event
 import com.example.pokemon.ui.PokemonImage
 
 @Composable
@@ -45,7 +42,6 @@ fun DetailRoute(
     val detailUiState by viewModel.detail.collectAsStateWithLifecycle()
     DetailScreen(
         detailUiState = detailUiState,
-        errorMessage = viewModel.errorMessage,
         onBackClick = onBackClick,
         navigateToDetail = navigateToDetail
     )
@@ -55,13 +51,10 @@ fun DetailRoute(
 @Composable
 private fun DetailScreen(
     detailUiState: DetailUiState,
-    errorMessage: Event<String>?,
     onBackClick: () -> Unit,
     navigateToDetail: (pokemonId: Long) -> Unit,
 ) {
-    val snackbarHostState = remember { SnackbarHostState() }
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {},
@@ -74,31 +67,53 @@ private fun DetailScreen(
                     }
                 },
                 actions = {
-                    Text(
-                        modifier = Modifier.padding(end = 16.dp),
-                        text = "#${detailUiState.id}",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
-                    )
+                    if (detailUiState is DetailUiState.Success) {
+                        Text(
+                            modifier = Modifier.padding(end = 16.dp),
+                            text = "#${detailUiState.data.id}",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    }
                 }
             )
         }
     ) { innerPadding ->
-        DetailContent(
-            modifier = Modifier.padding(innerPadding),
-            name = detailUiState.name,
-            image = detailUiState.image,
-            types = detailUiState.types,
-            evolvesFrom = detailUiState.evolvesFrom,
-            description = detailUiState.description,
-            evolvesFromClicked = {
-                navigateToDetail(it)
+        val modifier = Modifier
+            .fillMaxSize()
+            .padding(innerPadding)
+
+        when (detailUiState) {
+            DetailUiState.Loading -> {
+                Box(modifier = modifier, contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
             }
-        )
-    }
-    LaunchedEffect(errorMessage) {
-        if (errorMessage == null) return@LaunchedEffect
-        snackbarHostState.showSnackbar(message = errorMessage.peekContent())
+
+            is DetailUiState.Success -> {
+                val data = detailUiState.data
+                DetailContent(
+                    modifier = modifier,
+                    name = data.name,
+                    image = data.image,
+                    types = data.types,
+                    evolvesFrom = data.evolvesFrom,
+                    description = data.description,
+                    evolvesFromClicked = {
+                        navigateToDetail(it)
+                    }
+                )
+            }
+
+            is DetailUiState.Error -> {
+                Box(modifier = modifier, contentAlignment = Alignment.Center) {
+                    Text(
+                        text = detailUiState.errorMessage,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -113,9 +128,7 @@ private fun DetailContent(
     evolvesFromClicked: (pokemonId: Long) -> Unit,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 32.dp),
+        modifier = modifier.padding(horizontal = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -187,15 +200,16 @@ private fun EvolvesFromItem(name: String, image: String, onClick: () -> Unit) {
 @Preview
 private fun DetailScreenPreview() {
     DetailScreen(
-        detailUiState = DetailUiState(
-            0,
-            "pikachu",
-            "",
-            listOf("water", "fire"),
-            EvolvesFrom(1, "charmander", ""),
-            "description"
+        detailUiState = DetailUiState.Success(
+            data = DetailData(
+                0,
+                "pikachu",
+                "",
+                listOf("water", "fire"),
+                EvolvesFrom(1, "charmander", ""),
+                "description"
+            )
         ),
-        errorMessage = null,
         onBackClick = {},
         navigateToDetail = {}
     )
