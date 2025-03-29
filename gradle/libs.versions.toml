@@ -19,6 +19,8 @@ androidxPaging = "3.3.6"
 androidxNavigation = "2.8.9"
 room = "2.6.1"
 hilt-navigation-compose = "1.2.0"
+androidxWork = "2.10.0"
+androidxHilt = "1.2.0"
 composeBom = "2025.03.00"
 
 [libraries]
@@ -64,6 +66,10 @@ room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 room-ktx = { module = "androidx.room:room-ktx", version.ref = "room" }
 room-paging = { module = "androidx.room:room-paging", version.ref = "room" }
+
+androidx-work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "androidxWork" }
+androidx-hilt-work = { module = "androidx.hilt:hilt-work", version.ref = "androidxHilt" }
+androidx-hilt-compiler = { module = "androidx.hilt:hilt-compiler", version.ref = "androidxHilt" }
 
 [bundles]
 androidx-compose = ["androidx-ui", "androidx-ui-graphics", "androidx-ui-tooling", "androidx-ui-tooling-preview", "androidx-material3", "androidx-activity-compose", "androidx-compose-paging", "androidx-compose-ui-navigation", "coil-compose", "androidx-compose-lifecycle-viewmodel", "androidx-compose-lifecycle-runtime", "androidx-compose-livedata", "hilt-navigation-compose"]

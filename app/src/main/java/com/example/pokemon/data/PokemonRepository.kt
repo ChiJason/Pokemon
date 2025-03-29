@@ -47,7 +47,7 @@ class PokemonRepository @Inject constructor(
 
     suspend fun releasePokemon(pocketId: Long) = pokemonDao.deletePocket(pocketId)
 
-    suspend fun fetchPokemonList() {
+    suspend fun fetchPokemonList() = runCatching {
         coroutineScope {
             val lastPokemonId = pokemonDao.getLastPokemonId()
             if (lastPokemonId == 151) return@coroutineScope
@@ -55,7 +55,7 @@ class PokemonRepository @Inject constructor(
                 service.fetchPokemonList(offset = lastPokemonId).results.map { it.name }
             pokemonNames.map { async { fetchPokemon(it) } }.awaitAll()
         }
-    }
+    }.isSuccess
 
     private suspend fun fetchPokemon(name: String) {
         if (pokemonDao.getPokemonIdByName(name) != null) return

@@ -1,6 +1,5 @@
 package com.example.pokemon.ui.home
 
-import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -16,7 +15,6 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.net.UnknownHostException
 import javax.inject.Inject
 
 @HiltViewModel
@@ -49,22 +47,6 @@ class HomeViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
-
-    init {
-        fetchPrepopulatedData()
-    }
-
-    fun fetchPrepopulatedData() {
-        viewModelScope.launch {
-            runCatching {
-                repo.fetchPokemonList()
-            }.onFailure {
-                Log.e("HomeViewModel", "fetchPrepopulatedData: $it")
-                val error = if (it is UnknownHostException) "Connection Failed" else it.message.orEmpty()
-                errorMessage = Event(error)
-            }
-        }
-    }
 
     fun capturePokemon(pokemonId: Long) {
         viewModelScope.launch {
