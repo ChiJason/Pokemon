@@ -73,11 +73,11 @@ class HomeViewModel @Inject constructor(
 private fun List<TypeWithPokemons>.toCollectionItemUiState(): List<PokemonCollectionItemUiState> =
     map {
         PokemonCollectionItemUiState(
-            type = it.type.typeName,
+            type = it.type.typeName.replaceFirstChar(Char::uppercase),
             pokemonItems = it.pokemons.map { pokemon ->
                 PokemonItemUiState(
                     id = pokemon.pokemonId,
-                    name = pokemon.name,
+                    name = pokemon.name.replaceFirstChar(Char::uppercase),
                     image = pokemon.image
                 )
             }
@@ -88,7 +88,7 @@ private fun List<CapturedPokemon>.toPocketItemUiState(): List<PocketItemUiState>
     PocketItemUiState(
         id = it.id,
         pokemonId = it.pokemonId,
-        name = it.name,
+        name = it.name.replaceFirstChar(Char::uppercase),
         image = it.image
     )
 }

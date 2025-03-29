@@ -52,13 +52,13 @@ private fun toDetailUiState(pokemonId: Long, repo: PokemonRepository) = combine(
     val result = DetailUiState.Success(
         data = DetailData(
             id = pokemonWithTypes.pokemon.pokemonId,
-            name = pokemonWithTypes.pokemon.name,
+            name = pokemonWithTypes.pokemon.name.replaceFirstChar(Char::uppercase),
             image = pokemonWithTypes.pokemon.image,
             types = pokemonWithTypes.types.map { it.typeName },
             evolvesFrom = speciesWithEvolvesFrom.evolvesFrom?.let {
                 EvolvesFrom(
                     id = it.pokemonId,
-                    name = it.name,
+                    name = it.name.replaceFirstChar(Char::uppercase),
                     image = it.image
                 )
             },
