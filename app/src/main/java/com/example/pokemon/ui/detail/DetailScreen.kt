@@ -26,6 +26,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -49,7 +51,7 @@ fun DetailRoute(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun DetailScreen(
+fun DetailScreen(
     detailUiState: DetailUiState,
     onBackClick: () -> Unit,
     navigateToDetail: (pokemonId: Long) -> Unit,
@@ -85,7 +87,10 @@ private fun DetailScreen(
 
         when (detailUiState) {
             DetailUiState.Loading -> {
-                Box(modifier = modifier, contentAlignment = Alignment.Center) {
+                Box(
+                    modifier = modifier.semantics { contentDescription = "loading" },
+                    contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator()
                 }
             }

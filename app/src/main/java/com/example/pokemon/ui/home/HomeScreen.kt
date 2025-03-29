@@ -62,7 +62,7 @@ fun HomeScreenRoute(
 }
 
 @Composable
-private fun HomeScreen(
+fun HomeScreen(
     collections: List<PokemonCollectionItemUiState>,
     pocketItems: List<PocketItemUiState>,
     scrollToFirst: Event<Unit>?,

@@ -97,12 +97,12 @@ sealed class DetailUiState {
 }
 
 data class DetailData(
-    val id: Long = 0,
-    val name: String = "",
-    val image: String = "",
-    val types: List<String> = emptyList(),
-    val evolvesFrom: EvolvesFrom? = null,
-    val description: String = ""
+    val id: Long,
+    val name: String,
+    val image: String,
+    val types: List<String>,
+    val evolvesFrom: EvolvesFrom?,
+    val description: String
 )
 
 data class EvolvesFrom(
