@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Pokemon</string>
+    <string name="pocket">Pocket</string>
+    <string name="ball">ball</string>
+    <string name="back">Back</string>
+    <string name="evolves_from">Evolves from</string>
 </resources>

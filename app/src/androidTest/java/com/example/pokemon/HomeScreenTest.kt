@@ -1,9 +1,10 @@
 package com.example.pokemon
 
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.filterToOne
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onNodeWithText
@@ -19,7 +20,7 @@ import org.junit.Test
 class HomeScreenTest {
 
     @get:Rule
-    val composeTestRule = createComposeRule()
+    val composeTestRule = createAndroidComposeRule<ComponentActivity>()
 
     @Test
     fun should_display_collections_item_when_data_is_loaded() {
@@ -46,7 +47,7 @@ class HomeScreenTest {
             )
         }
         with(composeTestRule) {
-            onNodeWithText("Pocket").assertExists()
+            onNodeWithText(activity.getString(R.string.pocket)).assertExists()
             onNodeWithText("Pikachu").assertExists()
             onNodeWithText("Butterfree").assertExists()
             onNodeWithText("Fire").assertExists()
@@ -90,11 +91,11 @@ class HomeScreenTest {
             onNodeWithText("Pikachu").assertExists().performClick()
             onNodeWithText("Butterfree")
                 .onChildren()
-                .filterToOne(hasContentDescription("ball"))
+                .filterToOne(hasContentDescription(activity.getString(R.string.ball)))
                 .performClick()
             onNodeWithText("Ivysaur")
                 .onChildren()
-                .filterToOne(hasContentDescription("ball"))
+                .filterToOne(hasContentDescription(activity.getString(R.string.ball)))
                 .performClick()
         }
     }

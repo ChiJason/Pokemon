@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -35,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -84,7 +87,9 @@ fun HomeScreen(
         }
     ) { innerPadding ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .windowInsetsPadding(WindowInsets.displayCutout),
             contentPadding = innerPadding,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
@@ -119,12 +124,13 @@ private fun PocketItem(
     }
     Column(
         modifier = Modifier
+            .windowInsetsPadding(WindowInsets.displayCutout)
             .background(MaterialTheme.colorScheme.surface)
             .windowInsetsPadding(TopAppBarDefaults.windowInsets)
             .padding(top = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        SectionItem(title = "Pocket", tail = "${pocketItems.size}")
+        SectionItem(title = stringResource(R.string.pocket), tail = "${pocketItems.size}")
         LazyRow(
             modifier = Modifier.fillMaxWidth(),
             state = listState,
@@ -223,7 +229,7 @@ private fun PokemonItem(
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.baseline_catching_pokemon_24),
-                        contentDescription = "ball",
+                        contentDescription = stringResource(R.string.ball),
                         tint = Color.Unspecified
                     )
                 }
@@ -234,7 +240,8 @@ private fun PokemonItem(
 }
 
 @Composable
-@Preview
+@Preview(device = "id:pixel_9_pro_xl")
+@Preview(device = "spec:parent=pixel_9_pro_xl,orientation=landscape")
 private fun HomeScreenPreview() {
     HomeScreen(
         collections = listOf(
